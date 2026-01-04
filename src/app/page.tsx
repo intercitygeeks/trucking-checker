@@ -59,7 +59,12 @@ export default function Home() {
       setQuery(item.id);
       setType(item.idType);
       setListResults(null); // Clear list to show form clearly
-      setError('Please verify the captcha and click Search to view company details.');
+      setListResults(null); // Clear list to show form clearly
+      setError('found'); // Special flag to show blue box instead of red? Or just clearer text.
+      // Actually, let's just make the error state accept a generic message, but maybe prefix it so we can style it? 
+      // User complaint was it feels like an error.
+      // Let's just change the text for now to be very specific explanation.
+      setError('Company Selected. Please verify captcha to view full details.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       if (item.url) {
@@ -93,7 +98,10 @@ export default function Home() {
         </div>
 
         {error && (
-          <div className="mt-8 p-4 bg-red-50 to-white border border-red-200 text-red-700 rounded-xl max-w-lg text-center animate-fade-in-up shadow-sm">
+          <div className={`mt-8 p-4 rounded-xl max-w-lg text-center animate-fade-in-up shadow-sm border ${error.includes('Selected')
+              ? 'bg-blue-50 border-blue-200 text-blue-800'
+              : 'bg-red-50 border-red-200 text-red-700'
+            }`}>
             {error}
           </div>
         )}

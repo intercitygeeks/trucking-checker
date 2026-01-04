@@ -33,7 +33,7 @@ export default function SearchForm({ onSearch, isLoading, query, setQuery, type,
                 <div className="text-center">
                     <h2 className="text-xl font-bold text-slate-900 mb-6 text-[#000099]">Search Criteria</h2>
                     <div className="flex justify-center gap-6 items-center bg-blue-50/50 p-6 rounded-lg border border-blue-100">
-                        {(['DOT', 'MC', 'NAME'] as SearchType[]).map((t) => (
+                        {(['NAME', 'DOT', 'MC'] as SearchType[]).map((t) => (
                             <label key={t} className="flex items-center gap-2 cursor-pointer group">
                                 <input
                                     type="radio"
