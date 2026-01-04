@@ -8,9 +8,12 @@
   /* slate-900 */
 }
 
+html,
 body {
   color: rgb(var(--foreground));
-  background: rgb(var(--background));
+  background-color: white !important;
+  /* Force opaque white for iframes */
+  background: white !important;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
