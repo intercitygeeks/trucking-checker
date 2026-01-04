@@ -11,61 +11,74 @@ export default function Home() {
   const [listResults, setListResults] = useState<any[] | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   // Lifted state
   const [query, setQuery] = useState('');
   const [type, setType] = useState<'NAME' | 'MC' | 'DOT'>('NAME');
 
-  const handleSearch = async (captchaToken: string | null) => {
+  const executeSearch = async (overrideQuery: string, overrideType: 'NAME' | 'MC' | 'DOT', captchaToken: string | null) => {
     setIsLoading(true);
     setError('');
     setData(null);
     setListResults(null);
 
-    try {
-      if (!captchaToken) {
-        throw new Error('Please complete the captcha.');
-      }
+    // Scroll to top to show progress
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      const res = await fetch(`/api/check-company?query=${encodeURIComponent(query)}&type=${type}&token=${captchaToken}`);
+    try {
+      const q = overrideQuery || query;
+      const t = overrideType || type;
+
+      if (!sessionToken && !captchaToken) throw new Error('Please complete the captcha.');
+
+      const tokenParam = captchaToken ? `&token=${captchaToken}` : '';
+      const sessionParam = sessionToken ? `&sessionToken=${encodeURIComponent(sessionToken)}` : '';
+
+      const res = await fetch(`/api/check-company?query=${encodeURIComponent(q)}&type=${t}${tokenParam}${sessionParam}`);
       const result = await res.json();
 
       if (!res.ok) {
+        if (res.status === 403 && sessionToken) {
+          setSessionToken(null);
+          throw new Error('Session expired. Please verify captcha again.');
+        }
         throw new Error(result.error || 'Failed to fetch data');
       }
 
+      if (result.sessionToken) setSessionToken(result.sessionToken);
+
       if (result.type === 'LIST') {
-        if (result.results && result.results.length > 0) {
-          setListResults(result.results);
-        } else {
-          setError('No results found. Please check your query.');
-        }
+        if (result.results && result.results.length > 0) setListResults(result.results);
+        else setError('No results found. Please check your query.');
       } else if (result.type === 'SNAPSHOT') {
         setData(result.data);
       } else {
         setError('Unexpected response from server.');
       }
-
     } catch (err: any) {
-      setError(err.message || 'An error occurred while searching.');
+      setError(err.message || 'An error occurred.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleSearch = async (captchaToken: string | null) => {
+    await executeSearch(query, type, captchaToken);
+  };
+
   const handleSelectCompany = (item: any) => {
     if (item.id && (item.idType === 'DOT' || item.idType === 'MC')) {
-      // Pre-fill the form and ask user to verify captcha
       setQuery(item.id);
       setType(item.idType);
-      setListResults(null); // Clear list to show form clearly
-      setListResults(null); // Clear list to show form clearly
-      setError('found'); // Special flag to show blue box instead of red? Or just clearer text.
-      // Actually, let's just make the error state accept a generic message, but maybe prefix it so we can style it? 
-      // User complaint was it feels like an error.
-      // Let's just change the text for now to be very specific explanation.
-      setError('Company Selected. Please verify captcha to view full details.');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      if (sessionToken) {
+        executeSearch(item.id, item.idType, null);
+      } else {
+        setListResults(null);
+        setError('Company Selected. Please verify captcha to view full details.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } else {
       if (item.url) {
         setError("Could not determine ID for this company. Please try searching by specific DOT number.");
@@ -88,19 +101,20 @@ export default function Home() {
 
         <div className="w-full animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
           <SearchForm
-            onSearch={handleSearch}
+            onSearch={(token) => executeSearch(query, type, token)}
             isLoading={isLoading}
             query={query}
             setQuery={setQuery}
             type={type}
             setType={setType}
+            isVerified={!!sessionToken}
           />
         </div>
 
         {error && (
           <div className={`mt-8 p-4 rounded-xl max-w-lg text-center animate-fade-in-up shadow-sm border ${error.includes('Selected')
-              ? 'bg-blue-50 border-blue-200 text-blue-800'
-              : 'bg-red-50 border-red-200 text-red-700'
+            ? 'bg-blue-50 border-blue-200 text-blue-800'
+            : 'bg-red-50 border-red-200 text-red-700'
             }`}>
             {error}
           </div>

@@ -1,42 +1,92 @@
 
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
+import crypto from 'crypto';
+
+const SESSION_DURATION_MS = 10 * 60 * 1000; // 10 minutes
+
+function getSecretKey() {
+  return process.env.RECAPTCHA_SECRET_KEY || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
+}
+
+function generateSessionToken(): string {
+  const timestamp = Date.now().toString();
+  const secret = getSecretKey();
+  const signature = crypto.createHmac('sha256', secret).update(timestamp).digest('hex');
+  // Return base64 of timestamp:signature for easy transport
+  return Buffer.from(`${timestamp}:${signature}`).toString('base64');
+}
+
+function verifySessionToken(token: string): boolean {
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf-8');
+    const [timestampStr, signature] = decoded.split(':');
+
+    if (!timestampStr || !signature) return false;
+
+    const timestamp = parseInt(timestampStr, 10);
+    if (isNaN(timestamp)) return false;
+
+    // Check expiration
+    if (Date.now() - timestamp > SESSION_DURATION_MS) return false;
+
+    // Verify signature
+    const secret = getSecretKey();
+    const expectedSignature = crypto.createHmac('sha256', secret).update(timestampStr).digest('hex');
+
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+  } catch (e) {
+    return false;
+  }
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('query');
   const type = searchParams.get('type') || 'NAME'; // NAME, MC, DOT
-  const token = searchParams.get('token');
+  const captchaToken = searchParams.get('token');
+  const sessionToken = searchParams.get('sessionToken');
 
   if (!query) {
     return NextResponse.json({ error: 'Query parameter is required' }, { status: 400 });
   }
 
-  if (!token) {
-    return NextResponse.json({ error: 'Captcha token is missing' }, { status: 403 });
+  let isVerified = false;
+
+  // 1. Try Session Token first
+  if (sessionToken && verifySessionToken(sessionToken)) {
+    isVerified = true;
   }
+  // 2. Fallback to Captcha Token
+  else if (captchaToken) {
+    // Verify Captcha with Google
+    try {
+      const secretKey = getSecretKey();
+      const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${captchaToken}`;
+      const captchaRes = await fetch(verifyUrl, { method: 'POST' });
+      const captchaData = await captchaRes.json();
 
-  // Verify Captcha
-  try {
-    const secretKey = process.env.RECAPTCHA_SECRET_KEY || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe'; // Use Env or Google Test Secret Key
-    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${token}`;
-    const captchaRes = await fetch(verifyUrl, { method: 'POST' });
-    const captchaData = await captchaRes.json();
-
-    if (!captchaData.success) {
-      return NextResponse.json({ error: 'Captcha verification failed' }, { status: 403 });
+      if (captchaData.success) {
+        isVerified = true;
+      }
+    } catch (e) {
+      console.error('Captcha Error', e);
     }
-  } catch (e) {
-    console.error('Captcha Error', e);
-    return NextResponse.json({ error: 'Captcha verification error' }, { status: 500 });
   }
+
+  if (!isVerified) {
+    return NextResponse.json({ error: 'Security verification failed. Please try the captcha again.' }, { status: 403 });
+  }
+
+  // Generate a fresh session token (slides the window) or new one
+  const newSessionToken = generateSessionToken();
 
   // Map our types to FMCSA query params
-  // https://safer.fmcsa.dot.gov/query.asp
-  // Parameters often seen:
-  // searchtype: ANY (Name), USDOT, MC_MX
-  // query_param: Name, USDOT, MC_MX
-  // query_string: <value>
+  // ... (rest of the scraping logic)
+
+  // NOTE: I need to preserve the scraping logic below locally or use the tool to replace only the top part.
+  // The tool instructions say "ReplacementContent... must be a complete drop-in replacement of the TargetContent".
+  // I will target the top part of the file up to the FMCSA logic setup.
 
   let queryParam = 'NAME';
 
@@ -61,10 +111,6 @@ export async function GET(request: Request) {
   formData.append('query_string', query);
 
   try {
-    // FMCSA search is POST usually, or GET with params. Let's try POST as forms usually are.
-    // Actually safer often accepts GET too, but let's stick to POST if mimicking form.
-    // Wait, query.asp is often often accessed via GET in examples? Let's try POST to be safe.
-
     const response = await fetch(fmcsaUrl, {
       method: 'POST',
       headers: {
@@ -77,13 +123,10 @@ export async function GET(request: Request) {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    // Check if we are on a list page or a snapshot page.
-    // Snapshot page usually has "Company Snapshot" header.
     const pageTitle = $('title').text();
     const isSnapshot = pageTitle.includes('Company Snapshot') || $('h2, h3, b').text().includes('Company Snapshot');
 
     if (isSnapshot) {
-      // Parse Snapshot
       // Parse Snapshot
       const entityType = parseField($, 'Entity Type:');
       const legalName = parseField($, 'Legal Name:');
@@ -93,13 +136,8 @@ export async function GET(request: Request) {
       const powerUnits = parseField($, 'Power Units:');
       const drivers = parseField($, 'Drivers:');
 
-      // Check for Motor Vehicles authorization
-      // Based on HTML, it's in a table under "Cargo Carried" or similar?
-      // Actually we saw "Cargo Carried:" header.
-      // And then rows like: <td>X</td> <td>Motor Vehicles</td>
       const authorizedForMotorVehicles = parseCargoCarried($, 'Motor Vehicles');
 
-      // Determine Broker/Carrier
       let status = 'UNKNOWN';
       const etUpper = entityType.toUpperCase();
       const isCarrier = etUpper.includes('CARRIER');
@@ -108,10 +146,11 @@ export async function GET(request: Request) {
       if (isCarrier && isBroker) status = 'BOTH';
       else if (isCarrier) status = 'CARRIER';
       else if (isBroker) status = 'BROKER';
-      else if (etUpper) status = etUpper; // e.g. "SHIPPER" or nothing
+      else if (etUpper) status = etUpper;
 
       return NextResponse.json({
         type: 'SNAPSHOT',
+        sessionToken: newSessionToken, // RETURN TOKEN
         data: {
           legalName,
           dbaName,
@@ -132,32 +171,16 @@ export async function GET(request: Request) {
         }
       });
     } else {
-      // It's a list or no results
-      // Look for rows in query tables. 
-      // Table often has headers: Name, Location, Type, etc.
-      // This part is trickier to genericize without seeing HTML.
-      // We will try to find links to query.asp?searchtype=...
-
       const results: any[] = [];
-      // Select all rows that look like results. 
-      // Usually there's a table with class 'queryfield' or similar, or just standard table.
-      // Let's look for th headers matching 'Name', 'USDOT' etc.
 
       $('tr').each((i, el) => {
         const cells = $(el).find('td, th');
-        // The structure seen in debug_intercity.html:
-        // <tr>
-        //   <th scope="rpw" ...><a href="...">INTERCITY LINES INC</a></th>
-        //   <td ...>WARREN, MA</td>
-        // </tr>
-
         const linkEl = $(el).find('a[href*="query.asp"]');
 
         if (linkEl.length > 0) {
           const nameVal = linkEl.text().trim();
           const href = linkEl.attr('href');
 
-          // Try to get location from the next cell
           let locationVal = '';
           const parentCell = linkEl.closest('td, th');
           const nextCell = parentCell.next('td, th');
@@ -165,8 +188,6 @@ export async function GET(request: Request) {
             locationVal = nextCell.text().trim();
           }
 
-          // Extract DOT or value from href to help with precise searching later
-          // href example: query.asp?searchtype=ANY&query_type=queryCarrierSnapshot&query_param=USDOT&...&query_string=223672&...
           let idVal = '';
           let idType = 'NAME';
 
@@ -185,7 +206,7 @@ export async function GET(request: Request) {
             results.push({
               name: nameVal,
               location: locationVal,
-              id: idVal, // The DOT/MC number found in the link
+              id: idVal,
               idType: idType,
               url: href
             });
@@ -195,9 +216,10 @@ export async function GET(request: Request) {
 
       return NextResponse.json({
         type: 'LIST',
+        sessionToken: newSessionToken, // RETURN TOKEN
         count: results.length,
         message: 'Multiple results found or no direct snapshot. Please refine search.',
-        results // In a real app we'd parse this better, but for now we might just handle the "exact match" case primarily or guide user.
+        results
       });
     }
 

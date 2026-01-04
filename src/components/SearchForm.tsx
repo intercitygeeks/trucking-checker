@@ -15,13 +15,16 @@ interface SearchFormProps {
     setType: (t: SearchType) => void;
 }
 
-export default function SearchForm({ onSearch, isLoading, query, setQuery, type, setType }: SearchFormProps) {
+export default function SearchForm({ onSearch, isLoading, query, setQuery, type, setType, isVerified = false }: SearchFormProps & { isVerified?: boolean }) {
     const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (query.trim() && captchaToken) {
-            onSearch(captchaToken);
+        // If verified, allow search without captchaToken
+        if (query.trim()) {
+            if (isVerified || captchaToken) {
+                onSearch(captchaToken);
+            }
         }
     };
 
@@ -65,17 +68,26 @@ export default function SearchForm({ onSearch, isLoading, query, setQuery, type,
                 </div>
             </div>
 
-            {/* Captcha */}
-            <div className="flex justify-center mt-6">
-                <ReCAPTCHA
-                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
-                    onChange={(token) => setCaptchaToken(token)}
-                />
-            </div>
+            {/* Captcha - Only show if NOT verified */}
+            {!isVerified ? (
+                <div className="flex justify-center mt-6">
+                    <ReCAPTCHA
+                        sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+                        onChange={(token) => setCaptchaToken(token)}
+                    />
+                </div>
+            ) : (
+                <div className="flex justify-center mt-6 text-green-700 bg-green-50 py-2 rounded-lg border border-green-100 items-center gap-2 px-4 shadow-sm animate-fade-in-up">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-medium text-sm">Secure Session Active</span>
+                </div>
+            )}
 
             <button
                 type="submit"
-                disabled={isLoading || !query.trim() || !captchaToken}
+                disabled={isLoading || !query.trim() || (!captchaToken && !isVerified)}
                 className="w-full mt-6 py-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transform transition-all duration-200 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center text-base"
             >
                 {isLoading ? (
