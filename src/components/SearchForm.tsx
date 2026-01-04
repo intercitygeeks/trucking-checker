@@ -29,7 +29,7 @@ export default function SearchForm({ onSearch, isLoading, query, setQuery, type,
     };
 
     return (
-        <form onSubmit={handleSubmit} className="w-full max-w-lg mx-auto bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+        <form onSubmit={handleSubmit} className="w-full max-w-lg mx-auto bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm">
             <div className="flex flex-col space-y-6">
 
                 {/* Type Selection */}

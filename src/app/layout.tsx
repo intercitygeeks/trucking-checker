@@ -25,10 +25,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#f8f9fa] text-slate-800 min-h-screen flex flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-slate-800 min-h-screen flex flex-col`}
       >
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md text-slate-900 py-4 px-6 border-b border-gray-100 sticky top-0 z-50">
+        <header className="bg-white text-slate-900 py-4 px-6 border-b border-gray-100 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto flex justify-between items-center">
             <div className="flex items-center space-x-2">
               <div className="font-bold text-2xl tracking-tighter flex items-center gap-1">

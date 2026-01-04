@@ -31,13 +31,13 @@ export default function CompanyResult({ data }: CompanyResultProps) {
             <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
 
                 {/* Header Section */}
-                <div className="p-8 md:p-10 border-b border-slate-50 relative">
+                <div className="p-6 md:p-10 border-b border-slate-50 relative">
                     <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                                 Company Overview
                             </span>
-                            <h1 className="text-4xl md:text-5xl font-light text-slate-900 tracking-tight leading-tight">
+                            <h1 className="text-3xl md:text-5xl font-light text-slate-900 tracking-tight leading-tight">
                                 {data.legalName}
                             </h1>
                             {data.dbaName && (
@@ -65,7 +65,7 @@ export default function CompanyResult({ data }: CompanyResultProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2">
 
                     {/* Left Column: Contact & Identity */}
-                    <div className="p-8 md:p-10 border-b md:border-b-0 md:border-r border-slate-50 bg-slate-[2px]">
+                    <div className="p-6 md:p-10 border-b md:border-b-0 md:border-r border-slate-50 bg-slate-[2px]">
                         <h3 className="text-sm font-semibold text-slate-900 mb-6 flex items-center gap-2">
                             <svg className="text-slate-400" style={{ width: '16px', height: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -92,7 +92,7 @@ export default function CompanyResult({ data }: CompanyResultProps) {
                     </div>
 
                     {/* Right Column: Status & Authority */}
-                    <div className="p-8 md:p-10 bg-slate-50/50">
+                    <div className="p-6 md:p-10 bg-slate-50/50">
                         <h3 className="text-sm font-semibold text-slate-900 mb-6 flex items-center gap-2">
                             <svg className="text-slate-400" style={{ width: '16px', height: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
