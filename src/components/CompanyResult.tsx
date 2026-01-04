@@ -159,29 +159,36 @@ export default function CompanyResult({ data }: CompanyResultProps) {
                 </div>
 
                 {/* Footer Section: Fleet Stats & Link */}
-                <div className="bg-slate-900 p-8 md:px-10 md:py-8 text-white flex flex-col md:flex-row justify-between items-center gap-8">
-                    <div className="flex gap-12 divide-x divide-slate-800">
-                        <div className="pr-4">
-                            <p className="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-1">Power Units</p>
-                            <p className="text-3xl md:text-4xl font-light tracking-tight">{data.powerUnits || '0'}</p>
+                {/* Footer Section: Fleet Stats & Link */}
+                <div className="bg-slate-900 text-white">
+                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-800">
+                        {/* Stats Group */}
+                        <div className="p-6 md:p-8 flex items-center justify-around md:justify-start md:gap-16">
+                            <div>
+                                <p className="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-1">Power Units</p>
+                                <p className="text-3xl md:text-4xl font-light tracking-tight">{data.powerUnits || '0'}</p>
+                            </div>
+                            <div>
+                                <p className="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-1">Drivers</p>
+                                <p className="text-3xl md:text-4xl font-light tracking-tight">{data.drivers || '0'}</p>
+                            </div>
                         </div>
-                        <div className="pl-12">
-                            <p className="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-1">Drivers</p>
-                            <p className="text-3xl md:text-4xl font-light tracking-tight">{data.drivers || '0'}</p>
+
+                        {/* Link Group */}
+                        <div className="p-6 md:p-8 flex items-center justify-center md:justify-end">
+                            <a
+                                href={`https://safer.fmcsa.dot.gov/query.asp?searchtype=ANY&query_type=queryCarrierSnapshot&query_param=USDOT&query_string=${data.usdot}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-3 text-slate-300 hover:text-white transition-colors group px-4 py-2 rounded-lg hover:bg-slate-800/50"
+                            >
+                                <span className="text-sm font-medium">View Complete Profile on SAFER</span>
+                                <svg style={{ width: '16px', height: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" className="group-hover:translate-x-0.5 transition-transform">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                            </a>
                         </div>
                     </div>
-
-                    <a
-                        href={`https://safer.fmcsa.dot.gov/query.asp?searchtype=ANY&query_type=queryCarrierSnapshot&query_param=USDOT&query_string=${data.usdot}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
-                    >
-                        <span className="text-sm font-medium border-b border-transparent group-hover:border-white pb-0.5">View Complete Profile on SAFER</span>
-                        <svg style={{ width: '16px', height: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                    </a>
                 </div>
             </div>
         </div>
