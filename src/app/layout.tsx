@@ -13,9 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Free Auto Transport Carrier Verification Tool | Intercity Lines",
-  description: "Instantly verify FMCSA status for auto transport carriers. Check USDOT/MC numbers, distinguish Brokers vs Carriers, and ensure your car shipper is authorized and safe.",
-  keywords: ["auto transport verification", "check MC number", "USDOT check", "carrier vs broker", "car shipping safety", "FMCSA validator"],
+  title: "Auto Transport Carrier Verification Tool",
+  description: "Verify FMCSA status for auto transport carriers.",
 };
 
 export default function RootLayout({
