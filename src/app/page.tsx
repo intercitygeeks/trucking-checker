@@ -99,7 +99,7 @@ export default function Home() {
             Trucking Company <span className="font-semibold">Checker</span>
           </h1>
           <p className="text-xl text-slate-500 max-w-2xl mx-auto font-normal leading-relaxed">
-            Verify FMCSA status instantly. Distinguish between <span className="text-slate-900 font-medium border-b border-slate-300 pb-0.5">Brokers</span> and <span className="text-emerald-700 font-medium border-b border-emerald-300 pb-0.5">Authorized Carriers</span> with logic verification.
+            Verify FMCSA status instantly. Distinguish between <span className="text-slate-900 font-medium border-b border-slate-300 pb-0.5">Brokers</span> and <span className="text-emerald-700 font-medium border-b border-emerald-300 pb-0.5">Authorized Carriers.</span>
           </p>
         </div>
 
