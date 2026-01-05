@@ -9,17 +9,19 @@ function getSecretKey() {
   return process.env.RECAPTCHA_SECRET_KEY || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
 }
 
+// Generate a wrapper for safe base64url handling if environment is old, but Node 14+ supports it.
+// Assuming Node env.
 function generateSessionToken(): string {
   const timestamp = Date.now().toString();
   const secret = getSecretKey();
   const signature = crypto.createHmac('sha256', secret).update(timestamp).digest('hex');
-  // Return base64 of timestamp:signature for easy transport
-  return Buffer.from(`${timestamp}:${signature}`).toString('base64');
+  // Use base64url to safely transport via URL query params without encoding headaches
+  return Buffer.from(`${timestamp}:${signature}`).toString('base64url');
 }
 
 function verifySessionToken(token: string): boolean {
   try {
-    const decoded = Buffer.from(token, 'base64').toString('utf-8');
+    const decoded = Buffer.from(token, 'base64url').toString('utf-8');
     const [timestampStr, signature] = decoded.split(':');
 
     if (!timestampStr || !signature) return false;
@@ -68,9 +70,15 @@ export async function GET(request: Request) {
 
       if (captchaData.success) {
         isVerified = true;
+      } else {
+        console.error('Captcha Verification Failed:', captchaData['error-codes']);
+        return NextResponse.json({
+          error: `Security verification failed. Code: ${captchaData['error-codes']?.join(', ') || 'Unknown'}. Please try again.`
+        }, { status: 403 });
       }
     } catch (e) {
       console.error('Captcha Error', e);
+      return NextResponse.json({ error: 'Security service unavailable.' }, { status: 500 });
     }
   }
 
@@ -147,6 +155,17 @@ export async function GET(request: Request) {
       else if (isCarrier) status = 'CARRIER';
       else if (isBroker) status = 'BROKER';
       else if (etUpper) status = etUpper;
+
+      if (!legalName && !usdot) {
+        // If we thought it was a snapshot but found no data, it's a false positive or failed scrape
+        return NextResponse.json({
+          type: 'LIST',
+          sessionToken: newSessionToken,
+          count: 0,
+          message: 'No results found. Please check your query.',
+          results: []
+        });
+      }
 
       return NextResponse.json({
         type: 'SNAPSHOT',

@@ -89,13 +89,17 @@ export default function Home() {
   return (
     <main className="flex-1 flex flex-col items-center p-6 relative">
 
-      <div className="w-full max-w-3xl z-10 flex flex-col items-center mt-12 mb-12">
-        <div className="text-center mb-12 animate-fade-in-up">
-          <h1 className="text-4xl md:text-5xl font-light text-slate-900 tracking-tight mb-4">
-            Trucking Company Checker
+      <div className="w-full max-w-4xl z-10 flex flex-col items-center mt-8 mb-10">
+        <div className="text-center mb-10 animate-fade-in-up">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full mb-6">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+            <span className="text-[10px] font-bold tracking-widest uppercase text-slate-500">FMCSA Database Connected</span>
+          </div>
+          <h1 className="text-5xl md:text-7xl font-light text-slate-900 tracking-tighter mb-6 relative">
+            Trucking Company <span className="font-semibold">Checker</span>
           </h1>
-          <p className="text-lg text-slate-500 max-w-xl mx-auto font-medium">
-            Verify FMCSA status instantly. Check <span className="text-slate-900 font-semibold">Broker</span> vs <span className="text-emerald-600 font-semibold">Carrier</span> authority.
+          <p className="text-xl text-slate-500 max-w-2xl mx-auto font-normal leading-relaxed">
+            Verify FMCSA status instantly. Distinguish between <span className="text-slate-900 font-medium border-b border-slate-300 pb-0.5">Brokers</span> and <span className="text-emerald-700 font-medium border-b border-emerald-300 pb-0.5">Authorized Carriers</span> with logic verification.
           </p>
         </div>
 

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import ReCAPTCHA from "react-google-recaptcha";
 
 type SearchType = 'NAME' | 'MC' | 'DOT';
@@ -17,6 +17,7 @@ interface SearchFormProps {
 
 export default function SearchForm({ onSearch, isLoading, query, setQuery, type, setType, isVerified = false }: SearchFormProps & { isVerified?: boolean }) {
     const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+    const recaptchaRef = useRef<ReCAPTCHA>(null);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -24,37 +25,49 @@ export default function SearchForm({ onSearch, isLoading, query, setQuery, type,
         if (query.trim()) {
             if (isVerified || captchaToken) {
                 onSearch(captchaToken);
+
+                // Always reset captcha after submission because tokens are one-time use.
+                // If the search fails, the user needs a fresh token anyway.
+                // If it succeeds, this component will re-render or be unmounted, no harm done.
+                if (recaptchaRef.current) {
+                    recaptchaRef.current.reset();
+                    setCaptchaToken(null);
+                }
             }
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="w-full max-w-lg mx-auto bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="flex flex-col space-y-6">
+        <form onSubmit={handleSubmit} className="w-full max-w-xl mx-auto">
+            <div className="flex flex-col space-y-8">
 
-                {/* Type Selection */}
-                <div className="text-center">
-                    <h2 className="text-xl font-bold text-slate-900 mb-6 text-[#000099]">Search Criteria</h2>
-                    <div className="flex justify-center gap-6 items-center bg-blue-50/50 p-6 rounded-lg border border-blue-100">
+                {/* Type Selection - Minimalist Pill Tabs */}
+                <div className="flex justify-center">
+                    <div className="inline-flex p-1.5 bg-slate-100/80 backdrop-blur-sm rounded-full border border-slate-200/50 relative">
                         {(['NAME', 'DOT', 'MC'] as SearchType[]).map((t) => (
-                            <label key={t} className="flex items-center gap-2 cursor-pointer group">
+                            <label key={t} className="relative cursor-pointer">
                                 <input
                                     type="radio"
                                     name="searchType"
                                     value={t}
                                     checked={type === t}
                                     onChange={() => setType(t)}
-                                    className="w-5 h-5 text-blue-900 focus:ring-blue-900 border-gray-300"
+                                    className="sr-only"
                                 />
-                                <span className={`text-lg transition-colors ${type === t ? 'font-bold text-slate-900' : 'text-slate-600 group-hover:text-slate-900'}`}>
-                                    {t === 'MC' ? 'MC/MX Number' : t === 'DOT' ? 'USDOT Number' : 'Name'}
-                                </span>
+                                <div className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${type === t
+                                    ? 'bg-white text-slate-900 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.1)] ring-1 ring-slate-900/5 scale-100'
+                                    : 'text-slate-500 hover:text-slate-700'
+                                    }`}>
+                                    {t === 'MC' ? 'MC Number' : t === 'DOT' ? 'USDOT' : 'Company Name'}
+                                </div>
                             </label>
                         ))}
                     </div>
                 </div>
 
-                <div className="flex flex-col space-y-2">
+                {/* Input Area */}
+                <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-100 via-slate-100 to-blue-100 rounded-full opacity-0 group-hover:opacity-100 transition duration-500 blur-md"></div>
                     <div className="relative">
                         <input
                             type="text"
@@ -62,44 +75,55 @@ export default function SearchForm({ onSearch, isLoading, query, setQuery, type,
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             placeholder={type === 'NAME' ? "Enter Company Name..." : type === 'MC' ? "Enter MC/MX Number..." : "Enter USDOT Number..."}
-                            className="w-full px-4 py-3 bg-white border border-gray-300 rounded text-slate-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-900 focus:border-blue-900 transition-all font-medium text-lg"
+                            className="w-full pl-8 pr-6 py-5 bg-white border border-slate-200 rounded-full text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-all font-medium text-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)]"
                         />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-slate-50 rounded-full text-slate-300">
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Captcha - Only show if NOT verified */}
             {!isVerified ? (
-                <div className="flex justify-center mt-6">
+                <div className="flex justify-center mt-10 transform scale-90 md:scale-100 transition-transform origin-top">
                     <ReCAPTCHA
+                        ref={recaptchaRef}
                         sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
                         onChange={(token) => setCaptchaToken(token)}
+                        theme="light"
                     />
                 </div>
             ) : (
-                <div className="flex justify-center mt-6 text-green-700 bg-green-50 py-2 rounded-lg border border-green-100 items-center gap-2 px-4 shadow-sm animate-fade-in-up">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" style={{ width: '20px', height: '20px', minWidth: '20px' }} viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="font-medium text-sm">Secure Session Active</span>
+                <div className="flex justify-center mt-8">
+                    <div className="inline-flex items-center gap-2 px-5 py-2 bg-emerald-50 rounded-full border border-emerald-100 text-emerald-700 animate-fade-in-up">
+                        <div className="bg-emerald-500 rounded-full p-0.5">
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <span className="font-semibold text-sm tracking-tight">Verified Session Active</span>
+                    </div>
                 </div>
             )}
 
             <button
                 type="submit"
                 disabled={isLoading || !query.trim() || (!captchaToken && !isVerified)}
-                className="w-full mt-6 py-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transform transition-all duration-200 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center text-base"
+                className="w-full mt-10 py-5 bg-slate-900 hover:bg-slate-800 text-white text-lg font-bold tracking-wide rounded-full transform transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center shadow-xl shadow-slate-900/20"
             >
                 {isLoading ? (
-                    <span className="flex items-center">
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <span className="flex items-center gap-3">
+                        <svg className="animate-spin h-5 w-5 text-white/90" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Searching...
+                        Verifying...
                     </span>
                 ) : (
-                    'Search Registry'
+                    'Verify Company'
                 )}
             </button>
         </form>
